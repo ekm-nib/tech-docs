@@ -1,3 +1,3 @@
 # tech-docs
 
-How to ? documents for some of the NIB projects
+How to documents related to web developemnt
