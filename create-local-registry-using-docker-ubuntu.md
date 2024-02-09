@@ -58,7 +58,8 @@ podman machine ssh
 location = "10.44.100.185:5000"
 insecure = true
 ```
-- Restart Podman in Linux and restart podman machine in Windows
-   
+- Restart Podman in Linux
+- Restart podman machine in Windows
 
+### Now we are ready to use the registry 
    
