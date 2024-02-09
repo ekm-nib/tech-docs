@@ -50,7 +50,7 @@ vi /etc/containers/registries.conf
 - Windows : Login to podman machine
 ```
 podman machine ssh
-/etc/containers/registries.conf
+vi /etc/containers/registries.conf
 ```
 - Add the local registry
 ```
