@@ -9,9 +9,17 @@
 7. If application not accessible outside the host, add application port in firewall
 login as root user
 ```
+su 
+```
+Chek the firewall settings for adding ports
+```
 firewall-cmd --list-all
 ```
-This will show the firewall settings
+Add the application port to settingd.
+```
 firewall-cmd --zone=public --permanent --add-port <port>/tcp
-This will add the application port. Then reload the firewall
+```
+Reload the firewall
+```
 firewall-cmd --reload
+```
