@@ -118,3 +118,5 @@ curl -u <username>:password https://<registry host>:<port>/v2/_catalog
 ```
 podman pull <hostname>:<port>/folder/image_name:tag
 ```
+
+__SOURCE__: ```https://www.redhat.com/sysadmin/simple-container-registry```
