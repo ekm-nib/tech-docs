@@ -116,5 +116,5 @@ curl -u <username>:password https://<registry host>:<port>/v2/_catalog
 ```
 10. Pull image from registry
 ```
-podman pull hostname>:<port>/folder/image_name:tag
+podman pull <hostname>:<port>/folder/image_name:tag
 ```
