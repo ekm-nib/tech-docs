@@ -88,6 +88,33 @@ openssl s_client -connect <servername>:5000 -servername <servername>
 nano /etc/containers/registries.conf
 
 ```
+Add the registry
+```
+[[registry]]
+location = "hostname:port"
+insecure = true
+```
+Set insecure to true if registry is not secured by TSL as per step 4
 8. Push image to registry
+  * Login to registry
+
+    ```
+    podman login <hostname>:5000
+    ```
+    Enter username and password on prompt
+  * Push the image
+
+   ```
+   podman push <image id> <registry hostname>:<port>/folder/image_name:tag
+   ```
+Set ```tls-verify=false``` if registry is not secured 
+
 9. Verify image in registry
+
+```
+curl -u <username>:password https://<registry host>:<port>/v2/_catalog
+```
 10. Pull image from registry
+```
+podman pull hostname>:<port>/folder/image_name:tag
+```
