@@ -32,7 +32,7 @@ htpasswd -bBc registry/auth/htpasswd registryuser registryuserpassword
 4. Secure the regisry using self signed certificate
 
 ```
-openssl req -newkey rsa:4096 -nodes -sha256 -keyout registry/certs/domain.key -x509 -days 365 -out /opt/registry/certs/domain.cr
+openssl req -newkey rsa:4096 -nodes -sha256 -keyout registry/certs/domain.key -x509 -days 365 -out registry/certs/domain.crt
 ```
 * __req__ tells OpenSSL to generate and process certificate requests.
 * __-newkey__ tells OpenSSL to create a new private key and matching certificate request.
@@ -44,7 +44,7 @@ openssl req -newkey rsa:4096 -nodes -sha256 -keyout registry/certs/domain.key -x
 * __-days__ tells OpenSSL the number of days the key pair is valid for.
 * __-out__ tells OpenSSL where to store the certificate.
 
-__Note__: If the registry is not secured using TLS, the insecure setting in the /etc/containers/registries.conf file may have to be configured for the registry
+__Note__: If the registry is not secured using TLS, the insecure setting ```insecure = true``` in the /etc/containers/registries.conf file may have to be configured for the registry
 
 5. Create docker-compose.yml file
 
@@ -55,19 +55,24 @@ services:
   registry:
     image: registry:2
     ports:
-    - "8005:5000"
-    environment:
-      REGISTRY_AUTH: htpasswd
-      REGISTRY_AUTH_HTPASSWD_REALM: Registry
-      REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd
-      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /data
-      REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt
-      REGISTRY_HTTP_TLS_KEY=/certs/domain.key
-      REGISTRY_COMPATIBILITY_SCHEMA1_ENABLED=true
+      - "8005:5000"
+    env_file:
+      - .env
     volumes:
       - ./auth:/auth:z
       - ./data:/var/lib/registry:z
       - ./certs:/certs:z
+```
+## .env file
+```
+REGISTRY_AUTH=htpasswd
+REGISTRY_AUTH_HTPASSWD_REALM=Registry
+REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd
+REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/data
+REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt
+REGISTRY_HTTP_TLS_KEY=/certs/domain.key
+REGISTRY_COMPATIBILITY_SCHEMA1_ENABLED=true
+
 ```
 6. Start Registry
 
