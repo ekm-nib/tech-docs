@@ -313,10 +313,6 @@ Steps for creating the Apache + PHP + MySQL stack for Kerala Circle (circle code
 >                proxy_pass http://inventory-web-kl:80/kl/;
 >                proxy_buffering off;
 >            }
->            location /jh/ {
->                proxy_pass http://inventory-web-jh:80/jh/;
->                proxy_buffering off;
->            }
 >        }
 >    
 >         server {
@@ -334,7 +330,36 @@ Steps for creating the Apache + PHP + MySQL stack for Kerala Circle (circle code
 >    }
 >
 >    ```
+>    * since all the containers are in same podman netowrk, container service names are used in nginx.conf file
+>    * nginx set to listen in 8001 for Inventiry server and listening in 8002 for phpmyadmin
+>
+>  3. Start the nginx
+>    ```
+>    podman-compose -f docker-compose.nginx.yml up -d
+>    ```
+>  4. Verify the nginx container
+>
+>     ```
+>     podman ps
+>
+>     CONTAINER ID  IMAGE                                   COMMAND               CREATED     STATUS      PORTS                             NAMES
+>     37c8aeb587fd  docker.io/library/nginx:latest          nginx -g daemon o...  6 days ago  Up 6 days   0.0.0.0:8001-8002->8001-8002/tcp  nginx_nginx_1
+>     ```
+>     * nginx is running and listening in port 8001 and 8002
+>     * Check the access to Innetory port at http://<vm-ip>:8001
+>     * Static html file is hosted in nginx to list all the circle inventory portals
+>     * Kearala circle portal can be found at URL http://<vm-ip>:8001/kl
+>     * database can be accessed by phpmyadmin package at http://<vm-ip>:8002
 
+## 6. REPLICATION FOR OTHER CIRCLES
+> * Create a copy `docker-compose.web.kl.yml` and  `docker-compose.db.kl.yml` and rename it by replaciong .kl with respective circle code 
+> * Replace `kl` with respective circle code inside the files too
+> * Create and modify the envirinment file for other circles like `.kl.env`
+> * Start the web and databasae container using `podman-compose -f <circle-specific.yml file> up -d` commamd
+> * add http_proxy in nginx.conf file for other circles
+> * restart the nginx container
+> * Inventory portal for other circles can be access at URL http://<vm-ip>:8001/<circle-code>
+> * Database for different can be accessed using phpmyadmin. Server name to be given in phpmyadmin is same as container service name for each circle. Example `inventory-db-kl` for Kerala
 
 
 
