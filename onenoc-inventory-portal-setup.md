@@ -1,4 +1,4 @@
-# ONENOC INVENTORY PORTAL IMPLEMENTATION GUIDE
+# ONENOC INVENTORY PORTAL SETUP GUIDE
 #### Version 1.0.0
 #### Date 10-04-2024
 
@@ -229,15 +229,111 @@ Steps for creating the Apache + PHP + MySQL stack for Kerala Circle (circle code
 >      ab7b2aacf9a9  docker.io/library/mysql:latest          mysqld                6 days ago  Up 6 days                                     inventory_db_kl
 >      f1848948a31c  localhost/onenoc/inventory-web:1.0.0    apache2-foregroun...  6 days ago  Up 6 days                                     inventory_web_kl
 >      ```
->      * Both the web and database servers is up.
->      * We cannot access these servers now. No ports exposed to VM.
->      * We will be using nginx reverse proxy for accessing the servers
+>   Both the web and database servers is up.
 
-## 4. SETUP PHYMYADMIN SERVER FOR DATA BASE ACCESS
+## 4. SETUP phpmyadmin FOR DATABASE ACCESS
 
+> 1. Create `docker-compose.phpmyadmin.yml` in phpmyadmin directory
+>
+>  **docker-compose.phpmyadmin.yml** 
+>    ```
+>    version: "3"
+>    services:
+>      phpmyadmin:
+>        image: phpmyadmin/phpmyadmin
+>        environment:
+>          - PMA_ARBITRARY=1
+>          - UPLOAD_LIMIT=50M
+>          - MAX_EXECUTION_TIME=900
+>        networks:
+>          - inventory_default
+>    networks:
+>      inventory_default:
+>        external: true
+>    ```
+> 2. Start the phpmyadmin container
+>
+>     ```
+>     podman-compose -f docker-compose.phpmyadmin.yml up -d
+>     ```
+> 3. Verify the phpmyadmin container status
 > 
+>     ```
+>     podman ps
+>
+>     CONTAINER ID  IMAGE                                   COMMAND               CREATED     STATUS      PORTS                             NAMES
+>     2c3e83ae7926  docker.io/phpmyadmin/phpmyadmin:latest  apache2-foregroun...  6 days ago  Up 6 days                                     phpmyadmin_phpmyadmin_1
+>     ```
+> phpmyadmin container is up
 
-
+## 5. SETUP nginx reverse proxy FOR INVENTORY PORTAL and PHPMYADMIN ACCESS
+>  1. Create `docker-compose.nginx.yml` in nginx directory
+>  **docker-compose.nginx.yml**
+>    ```
+>    version: '3'
+>    services:
+>      nginx:
+>        image: nginx
+>        ports:
+>          - "8001:8001"
+>          - "8002:8002"
+>        volumes:
+>          - ./www:/usr/share/nginx/html/
+>          - ./nginx.conf:/etc/nginx/nginx.conf
+>        networks:
+>          - inventory_default
+>    networks:
+>      inventory_default:
+>        external: true
+>    volumes:
+>      www:
+>    ```
+>    * port 8001 is for accessing Inventory portal
+>    * port 8002 is for accessing phpmyadmin
+>    * static html files if required may be copied in www folder
+>    * nginx configuration may be set in nginx.conf
+>  2. Create `nginx.conf` file for proxy setting
+>  **nginx.conf** file
+>    ```
+>    events {
+>        worker_connections 1024;  # Set the maximum number of simultaneous connections
+>    }
+>
+>    http {
+>        server {
+>            listen 8001;
+>            server_name mydomain.com;
+>            root /usr/share/nginx/html/;
+>
+>            location / {
+>                try_files $uri $uri/ $uri.html =404;
+>            }
+>    
+>            location /kl/ {
+>                proxy_pass http://inventory-web-kl:80/kl/;
+>                proxy_buffering off;
+>            }
+>            location /jh/ {
+>                proxy_pass http://inventory-web-jh:80/jh/;
+>                proxy_buffering off;
+>            }
+>        }
+>    
+>         server {
+>            listen 8002;
+>            server_name mydomain.com;
+>    
+>            location / {
+>                proxy_pass http://phpmyadmin:80;
+>                proxy_buffering off;
+>                proxy_read_timeout 900s;
+>                proxy_send_timeout 900s;
+>                client_max_body_size 100M;
+>            }
+>        }
+>    }
+>
+>    ```
 
 
 
