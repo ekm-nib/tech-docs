@@ -107,30 +107,135 @@ Now the folders are created.
 * pdo_mysql extension is used for accessing database from PHP. It is installed during the image build process as per the command mentioned in `Dockerfile`
 
 Steps for creating the Apache + PHP + MySQL stack for Kerala Circle (circle code KL) is given below
-> 1. Create a `Dockerfile` in `inventory-web-db` folder. `Dokcerfile` is common for all circle.
+> 1. Create a `Dockerfile` in `inventory-web-db` folder. `Dokcerfile` is common for all circle and it used to create a common web server container image
 >
->   **Dockerfile**
->   ```
+>     **Dockerfile**
+>     ```
 > 
->   FROM php:apache
+>     FROM php:apache
 > 
->   # install pdo extension
+>     # install pdo extension
 > 
->   RUN docker-php-ext-install pdo pdo_mysql
+>     RUN docker-php-ext-install pdo pdo_mysql
 > 
->   # Use the default production configuration
+>     # Use the default production configuration
 > 
->   RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+>     RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 > 
->   ```
-> 2. Create the compose file `docker-compose.web.kl.yml`. This is the web server compose file for Kerala Circle. For other circles, replce the `.kl` with respective circle code.
+>     ```
+> 2. Create the web server image `localhost/onenoc/inventory-web:1.0.0`. It is the base image for all circles
+>    ```
+>    podman build -t localhost/onenoc/inventory-web:1.0.0 .
+>    ```
+>    List the image to check whether it created or not
+>    ```
+>     podman images
 >
->   **docker-compose.web.kl.yml**
->   ```
+>    REPOSITORY                                   TAG         IMAGE ID      CREATED       SIZE
+>    localhost/onenoc/inventory-web               1.0.1       39cb62a5f301  6 weeks ago   536 MB
+>    ```
+>    
+> 3. Create the compose file `docker-compose.web.kl.yml`. This is the web server compose file for Kerala Circle. For other circles, replce the `.kl` with respective circle code.
+>
+>    **docker-compose.web.kl.yml** file
+>    ```
+>    version: "3"
+>    services:
+>        inventory-web-kl: 
+>          image: localhost/onenoc/inventory-web:1.0.0
+>          container_name: inventory_web_kl
+>          networks:
+>            - inventory_default
+>          volumes:
+>            - ./www:/var/www/html/kl
+>          env_file: 
+>            - .kl.env
+>          restart: always
+>    volumes:
+>      www:
+>    networks:
+>      inventory_default:
+>        external: true
+>    ```
+>    * PHP codes for web servers are copied to `www` folder and volume mapping is done with the container.
+>    * container is named in a format to idetify with the circle code. `inventory_web_kl`
+>    * service name for the web server is also in a format to idetify with the circle code. service name will be used in nginx proxy server to distinguish circle with URL.
+>    * all the containers in the VM is attached to custom network named `inventory_default` so that containers can communicate each other.
 >   
+> 4. Create the compose file `docker-compose.db.kl.yml` for database server
+>
+>     **docker-compose.db.kl.yml** file
+>    ```
+>    version: "3"
+>    services:
+>        inventory-db-kl:
+>          image: mysql:latest
+>          container_name: inventory_db_kl
+>          env_file:
+>            - .kl.env
+>          networks:
+>            - inventory_default
+>          volumes:
+>            - ./db-data-kl:/var/lib/mysql
+>    volumes:
+>      db-data-kl:
+>    networks:
+>      inventory_default:
+>        external: true
+>    ```
+>   *  local directory db-data-kl is mapped with container volume for data persistance.
+>   *  local directory will be created automatically during container runtime
+>     
+> 5. Create the environment file `.kl.env` for customising database name, mysql root user password, database hostname etc.
+>   **.kl.env** file
+>      ```
+>      MYSQL_ROOT_PASSWORD=password
+>      MYSQL_HOSTNAME=inventory-db-kl
+>      MYSQL_DATABASE=inventory_db_kl
+>      MY_CIRCLE_NAME=KERALA
+>      MY_CIRCLE_CODE=KL
+>      NMS_API_SERVER=<IP:PORT of NMS API Server>
+>      ```
+>  * Both Web and Database server uses the same env file
+>  * environment variables are used in PHP PDO config file for database connectivity and determining circle specific access
+>  * NMS_API_SERVER will be different for different circles. It is used to get alarms and performace from third party applications like TEEVRA and BBNMS
+>
+> 6. STARTING THE WEB AND DATABASE SERVERS
+>   * Once the required files are created, the `inventory-web-db` folder looks like,
 >   ```
-> 3. Create the compose file `docker-compose.db.kl.yml` for database server
-> 4. Create the environment file `.kl.env` for customising database name, mysql root user password, database hostname etc.  
+>   inventory-web-db/
+>   ├── docker-compose.db.kl.yml
+>   ├── docker-compose.web.kl.yml
+>   ├── Dockerfile
+>   └── www
+>   ```
+>   * `www` folder will have the html/php codes for the web server
+>   * navigate to folder `inventory-web-db` in the terminal
+>
+>   1. Start the web server container with following command
+>      ```
+>      podman-compose -f docker-compose.web.kl.yml up -d
+>      ```
+>    * -f specifies the input compose file for web server
+>   2. Next, start the database server container
+>      ```
+>      podman-compose -f docker-compose.db.kl.yml up -d
+>      ```
+>   3. Verify the container status
+>      ```
+>      podman ps
+>
+>      CONTAINER ID  IMAGE                                   COMMAND               CREATED     STATUS      PORTS                             NAMES
+>      ab7b2aacf9a9  docker.io/library/mysql:latest          mysqld                6 days ago  Up 6 days                                     inventory_db_kl
+>      f1848948a31c  localhost/onenoc/inventory-web:1.0.0    apache2-foregroun...  6 days ago  Up 6 days                                     inventory_web_kl
+>      ```
+>      * Both the web and database servers is up.
+>      * We cannot access these servers now. No ports exposed to VM.
+>      * We will be using nginx reverse proxy for accessing the servers
+
+## 4. SETUP PHYMYADMIN SERVER FOR DATA BASE ACCESS
+
+> 
 
 
 
